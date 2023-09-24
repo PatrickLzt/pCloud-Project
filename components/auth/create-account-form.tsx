@@ -43,13 +43,12 @@ export function CreateAccount() {
             email,
             password,
             // options: {
-            //    emailRedirectTo: `${location.origin}/auth/callback`,
+            //    emailRedirectTo: `${location.origin}/auth/callback`, // optional, request email confirmation
             // },
          })
 
          if (user) {
             form.reset()
-            // router.push("/")
             router.refresh()
          }
       }

@@ -1,27 +1,30 @@
 "use client"
 
+import * as z from "zod"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from "@/components/ui/form"
-
-import { useForm } from "react-hook-form"
-import * as z from "zod"
-import { zodResolver } from "@hookform/resolvers/zod"
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { useRouter } from "next/navigation"
 
 const formSchema = z.object({
     email: z
-        .string({ required_error: "Email is required." })
-        .email({ message: "Please enter a valid email." }),
+        .string({ required_error: "Email is required" })
+        .email({ message: "Email is invalid" }),
     password: z
-        .string({ required_error: "Password is required." })
-        .min(8, { message: "Password must be at least 8 characters." })
+        .string({ required_error: "Password should not be empty" })
+        .min(8, { message: "Password should be at least 8 characters long" })
         .max(12),
 })
 
-export default function LoginAccount() {
+export function LoginAccount() {
 
-    const form = useForm<z.infer<typeof formSchema>>({ // <-- z.infer<typeof formSchema>() is the type of the form object
+    const router = useRouter()
+    const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
             email: "",
@@ -30,13 +33,23 @@ export default function LoginAccount() {
     })
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
-        console.log("data", values)
+
+        try {
+            const supabase = createClientComponentClient()
+            const { email, password } = values
+            const { error, data: { session } } = await supabase.auth.signInWithPassword({ email, password })
+
+            form.reset()
+            router.refresh()
+        }
+        catch (error) {
+            console.log("LoginAccountForm", error)
+        }
     }
 
     return (
-
-        <div className="flex flex-col justify-center items-center space-y-2">
-            <span className="text-lg font-bold">Good to see you again.</span>
+        <div className="flex flex-col items-center justify-center space-y-2">
+            <span className="text-2xl font-bold">It's good to see you again.</span>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col space-y-2">
                     <FormField
@@ -46,9 +59,9 @@ export default function LoginAccount() {
                             <FormItem>
                                 <FormLabel>Email</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="example@domain.com" {...field} />
+                                    <Input placeholder="Email" {...field} />
                                 </FormControl>
-                                <FormDescription>This is your email</FormDescription>
+                                <FormMessage />
                             </FormItem>
                         )}
                     />
@@ -59,15 +72,16 @@ export default function LoginAccount() {
                             <FormItem>
                                 <FormLabel>Password</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="example12456" {...field} />
+                                    <Input type="password" placeholder="Password" {...field} />
                                 </FormControl>
-                                <FormDescription>This is your password</FormDescription>
+                                <FormMessage />
                             </FormItem>
                         )}
                     />
-                    <Button type="submit">Create Account</Button>
+                    <Button type="submit">Login</Button>
                 </form>
             </Form>
         </div>
     )
+
 }
