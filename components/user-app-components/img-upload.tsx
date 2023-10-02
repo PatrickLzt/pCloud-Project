@@ -9,8 +9,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { useCallback, useEffect, useState } from "react"
 
 import { useDropzone } from 'react-dropzone'
@@ -33,12 +32,25 @@ export default function ImageUploadPlaceholder() {
     const onDrop = useCallback(async (acceptfiles: File[]) => {
 
         try {
+            // Get the first file
             const file = acceptfiles[0]
+
+            // Set the file to preview
             setFile({
                 file,
                 preview: URL.createObjectURL(file)
             })
 
+            const supabase = createClientComponentClient()
+            const { data, error } = await supabase.storage
+                .from(process.env.NEXT_PUBLIC_SUPABASE_APP_BUCKET_IMAGE_FOLDER)
+                .upload(`${process.env.NEXT_PUBLIC_SUPABASE_APP_BUCKET_IMAGE_FOLDER_PROCESSING}/${file.name}`,
+                    file
+                )
+
+            if (error) {
+                setFiletoProccess(data)
+            }
         } catch (error) {
             console.log("onDrop", error)
         }
@@ -46,8 +58,13 @@ export default function ImageUploadPlaceholder() {
 
     useEffect(() => {
         return () => {
+
+            // Revoke the preview url
             if (file) {
                 URL.revokeObjectURL(file.preview)
+            }
+            if (restoredFile) {
+                URL.revokeObjectURL(restoredFile.preview)
             }
         }
     })
@@ -63,9 +80,7 @@ export default function ImageUploadPlaceholder() {
     )
 
     // It just if the dialog is open or closed
-    const handleDialogOpenChange = async (e: boolean) => {
-
-    }
+    const handleDialogOpenChange = async (e: boolean) => { }
 
     return (
         <div className="flex h-[200px] w-full shrink-0 items-center justify-center rounded-md border border-dashed">
@@ -145,10 +160,8 @@ export default function ImageUploadPlaceholder() {
                                                     onLoad={() => URL.revokeObjectURL(restoredFile.preview)}
                                                 />
                                             </div>
-
                                         </div>
                                     )}
-
                                 </div>
                             </div>
                         </div>
